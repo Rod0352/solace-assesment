@@ -1,91 +1,237 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  CircularProgress,
+  Alert,
+  Container,
+  InputAdornment,
+  IconButton,
+} from "@mui/material";
+import ClearIcon from "@mui/icons-material/Clear";
+
+type Advocate = {
+  firstName: string;
+  lastName: string;
+  city: string;
+  degree: string;
+  specialties: string[];
+  yearsOfExperience: number;
+  phoneNumber: string;
+};
+
+type ApiResponse = {
+  data: Advocate[];
+};
+
+// Specialties component with MUI Chips
+function Specialties({ specialties }: { specialties: string[] }) {
+  return (
+    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+      {specialties.map((specialty, i) => (
+        <Chip
+          key={i}
+          label={specialty}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ m: 0.25 }}
+        />
+      ))}
+    </Box>
+  );
+}
 
 export default function Home() {
-  const [advocates, setAdvocates] = useState([]);
-  const [filteredAdvocates, setFilteredAdvocates] = useState([]);
+  const [advocates, setAdvocates] = useState<Advocate[]>([]);
+  const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
+  // Table headers
+  const headers = [
+    "First Name",
+    "Last Name",
+    "City",
+    "Degree",
+    "Specialties",
+    "Experience",
+    "Phone",
+  ];
+
+  // Fetch advocates from API
   useEffect(() => {
-    console.log("fetching advocates...");
-    fetch("/api/advocates").then((response) => {
-      response.json().then((jsonResponse) => {
+    const fetchAdvocates = async () => {
+      try {
+        const response = await fetch("/api/advocates");
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const jsonResponse: ApiResponse = await response.json();
         setAdvocates(jsonResponse.data);
         setFilteredAdvocates(jsonResponse.data);
-      });
-    });
+      } catch (err) {
+        console.error("Error fetching advocates:", err);
+      }
+    };
+
+    fetchAdvocates();
   }, []);
 
-  const onChange = (e) => {
-    const searchTerm = e.target.value;
+  // Reset filtered advocates when search term is empty
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setFilteredAdvocates(advocates);
+    }
+  }, [searchTerm, advocates]);
 
-    document.getElementById("search-term").innerHTML = searchTerm;
+  // Handle search input
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value;
+    setSearchTerm(term);
 
-    console.log("filtering advocates...");
-    const filteredAdvocates = advocates.filter((advocate) => {
+    if (!term.trim()) {
+      setFilteredAdvocates(advocates);
+      return;
+    }
+
+    const lowercaseTerm = term.toLowerCase();
+    // Filter based on search term
+    const filtered = advocates.filter((advocate) => {
       return (
-        advocate.firstName.includes(searchTerm) ||
-        advocate.lastName.includes(searchTerm) ||
-        advocate.city.includes(searchTerm) ||
-        advocate.degree.includes(searchTerm) ||
-        advocate.specialties.includes(searchTerm) ||
-        advocate.yearsOfExperience.includes(searchTerm)
+        advocate.firstName.toLowerCase().includes(lowercaseTerm) ||
+        advocate.lastName.toLowerCase().includes(lowercaseTerm) ||
+        advocate.city.toLowerCase().includes(lowercaseTerm) ||
+        advocate.degree.toLowerCase().includes(lowercaseTerm) ||
+        advocate.specialties.some((specialty) =>
+          specialty.toLowerCase().includes(lowercaseTerm)
+        ) ||
+        advocate.yearsOfExperience.toString().includes(term)
       );
     });
 
-    setFilteredAdvocates(filteredAdvocates);
+    setFilteredAdvocates(filtered);
   };
 
-  const onClick = () => {
-    console.log(advocates);
+  const resetSearch = () => {
+    setSearchTerm("");
     setFilteredAdvocates(advocates);
   };
 
   return (
-    <main style={{ margin: "24px" }}>
-      <h1>Solace Advocates</h1>
-      <br />
-      <br />
-      <div>
-        <p>Search</p>
-        <p>
-          Searching for: <span id="search-term"></span>
-        </p>
-        <input style={{ border: "1px solid black" }} onChange={onChange} />
-        <button onClick={onClick}>Reset Search</button>
-      </div>
-      <br />
-      <br />
-      <table>
-        <thead>
-          <th>First Name</th>
-          <th>Last Name</th>
-          <th>City</th>
-          <th>Degree</th>
-          <th>Specialties</th>
-          <th>Years of Experience</th>
-          <th>Phone Number</th>
-        </thead>
-        <tbody>
-          {filteredAdvocates.map((advocate) => {
-            return (
-              <tr>
-                <td>{advocate.firstName}</td>
-                <td>{advocate.lastName}</td>
-                <td>{advocate.city}</td>
-                <td>{advocate.degree}</td>
-                <td>
-                  {advocate.specialties.map((s) => (
-                    <div>{s}</div>
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography
+        variant="h4"
+        component="h1"
+        gutterBottom
+        sx={{ mb: 4, fontWeight: "bold" }}
+      >
+        Solace Advocates
+      </Typography>
+
+      <Box sx={{ mb: 4 }}>
+        <Typography
+          variant="subtitle1"
+          component="label"
+          sx={{ display: "block", mb: 1 }}
+        >
+          Search Advocates
+        </Typography>
+        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
+          <TextField
+            id="search"
+            variant="outlined"
+            size="small"
+            fullWidth
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Search by name, city, degree, etc."
+            InputProps={{
+              endAdornment: searchTerm && (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={resetSearch}
+                    aria-label="clear search"
+                  >
+                    <ClearIcon />
+                    <ClearIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{ maxWidth: 500 }}
+          />
+          <Button
+            variant="outlined"
+            onClick={resetSearch}
+            sx={{ minWidth: 100 }}
+          >
+            Reset
+          </Button>
+        </Box>
+        {searchTerm && (
+          <Typography variant="body2" color="text.secondary">
+            Searching for:{" "}
+            <Box component="span" sx={{ fontWeight: "medium" }}>
+              {searchTerm}
+            </Box>
+            {filteredAdvocates.length > 0 ? (
+              <Box component="span"> ({filteredAdvocates.length} results)</Box>
+            ) : (
+              <Box component="span"> (No results found)</Box>
+            )}
+          </Typography>
+        )}
+      </Box>
+
+      <TableContainer component={Paper} elevation={2}>
+        <Table sx={{ minWidth: 650 }} aria-label="advocates table">
+          <TableHead>
+            <TableRow sx={{ backgroundColor: "action.hover" }}>
+              {headers.map((header, index) => (
+                <TableCell key={index} sx={{ fontWeight: "bold" }}>
+                  {header}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredAdvocates.length > 0 &&
+              filteredAdvocates.map((advocate, index) => (
+                <TableRow
+                  key={index}
+                  sx={{
+                    "&:nth-of-type(odd)": { backgroundColor: "action.hover" },
+                  }}
+                >
+                  {Object.values(advocate).map((value, i) => (
+                    <TableCell key={i}>
+                      {i === 4 ? (
+                        <Specialties specialties={value as string[]} />
+                      ) : (
+                        value
+                      )}
+                    </TableCell>
                   ))}
-                </td>
-                <td>{advocate.yearsOfExperience}</td>
-                <td>{advocate.phoneNumber}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </main>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Container>
   );
 }
