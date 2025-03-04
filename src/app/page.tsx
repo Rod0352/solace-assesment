@@ -5,7 +5,6 @@ import {
   Box,
   Typography,
   TextField,
-  Button,
   Paper,
   Table,
   TableBody,
@@ -14,10 +13,7 @@ import {
   TableHead,
   TableRow,
   Chip,
-  CircularProgress,
-  Alert,
   Container,
-  InputAdornment,
   IconButton,
 } from "@mui/material";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -36,18 +32,42 @@ type ApiResponse = {
   data: Advocate[];
 };
 
+// Custom scrollbar style
+const scrollbarStyle = {
+  "&::-webkit-scrollbar": {
+    width: "0.4em",
+  },
+  "&::-webkit-scrollbar-track": {
+    boxShadow: "inset 0 0 6px rgba(0,0,0,0.00)",
+    webkitBoxShadow: "inset 0 0 6px rgba(0,0,0,0.00)",
+  },
+  "&::-webkit-scrollbar-thumb": {
+    backgroundColor: "#265b4e",
+    outline: "1px solid slategrey",
+    borderRadius: "10px",
+  },
+};
+
 // Specialties component with MUI Chips
 function Specialties({ specialties }: { specialties: string[] }) {
   return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 0.5,
+        overflow: "auto",
+        maxHeight: 90,
+        ...scrollbarStyle,
+      }}
+    >
       {specialties.map((specialty, i) => (
         <Chip
           key={i}
           label={specialty}
           size="small"
-          color="primary"
           variant="outlined"
-          sx={{ m: 0.25 }}
+          sx={{ m: 0.25, color: "#265b4e" }}
         />
       ))}
     </Box>
@@ -59,15 +79,15 @@ export default function Home() {
   const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  // Table headers
+  // Table headers with minimum width configuration
   const headers = [
-    "First Name",
-    "Last Name",
-    "City",
-    "Degree",
-    "Specialties",
-    "Experience",
-    "Phone",
+    { title: "First Name", minWidth: 100 },
+    { title: "Last Name", minWidth: 100 },
+    { title: "City", minWidth: 110 },
+    { title: "Degree", minWidth: 100 },
+    { title: "Specialties", minWidth: 160 },
+    { title: "Experience", minWidth: 30 },
+    { title: "Phone", minWidth: 120 },
   ];
 
   // Fetch advocates from API
@@ -136,53 +156,47 @@ export default function Home() {
       <Typography
         variant="h4"
         component="h1"
+        textAlign={"center"}
         gutterBottom
-        sx={{ mb: 4, fontWeight: "bold" }}
+        sx={{ mb: 4, fontWeight: "bold", color: "#265b4e" }}
       >
         Solace Advocates
       </Typography>
 
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="subtitle1"
-          component="label"
-          sx={{ display: "block", mb: 1 }}
-        >
-          Search Advocates
-        </Typography>
-        <Box sx={{ display: "flex", gap: 2, mb: 1 }}>
-          <TextField
-            id="search"
-            variant="outlined"
-            size="small"
-            fullWidth
-            value={searchTerm}
-            onChange={handleSearch}
-            placeholder="Search by name, city, degree, etc."
-            InputProps={{
-              endAdornment: searchTerm && (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    onClick={resetSearch}
-                    aria-label="clear search"
-                  >
-                    <ClearIcon />
-                    <ClearIcon />
-                  </IconButton>
-                </InputAdornment>
+      <Box sx={{ mb: 4, textAlign: "center" }}>
+        <TextField
+          id="search"
+          variant="outlined"
+          size="small"
+          fullWidth
+          value={searchTerm}
+          onChange={handleSearch}
+          placeholder="Search by name, city, degree, etc."
+          slotProps={{
+            input: {
+              endAdornment: (
+                <IconButton
+                  edge="end"
+                  size="small"
+                  disabled={!searchTerm}
+                  onClick={resetSearch}
+                >
+                  <ClearIcon />
+                </IconButton>
               ),
-            }}
-            sx={{ maxWidth: 500 }}
-          />
-          <Button
-            variant="outlined"
-            onClick={resetSearch}
-            sx={{ minWidth: 100 }}
-          >
-            Reset
-          </Button>
-        </Box>
+            },
+          }}
+          sx={{
+            maxWidth: 500,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 50,
+              borderColor: "#265b4e",
+              "&:hover fieldset": {
+                borderColor: "#265b4e",
+              },
+            },
+          }}
+        />
         {searchTerm && (
           <Typography variant="body2" color="text.secondary">
             Searching for:{" "}
@@ -198,13 +212,34 @@ export default function Home() {
         )}
       </Box>
 
-      <TableContainer component={Paper} elevation={2}>
-        <Table sx={{ minWidth: 650 }} aria-label="advocates table">
+      <TableContainer
+        component={Paper}
+        elevation={2}
+        sx={{
+          overflow: "auto",
+          maxHeight: window.innerHeight - 250,
+          ...scrollbarStyle,
+        }}
+      >
+        <Table stickyHeader sx={{ minWidth: 900 }} aria-label="advocates table">
           <TableHead>
-            <TableRow sx={{ backgroundColor: "action.hover" }}>
+            <TableRow>
               {headers.map((header, index) => (
-                <TableCell key={index} sx={{ fontWeight: "bold" }}>
-                  {header}
+                <TableCell
+                  key={index}
+                  sx={{
+                    minWidth: header.minWidth,
+                    fontWeight: "bold",
+                    backgroundColor: "#265b4e",
+                    color: "white",
+                    whiteSpace: "nowrap",
+                    padding: "16px",
+                    position: "sticky",
+                    top: 0,
+                    zIndex: 1,
+                  }}
+                >
+                  {header.title}
                 </TableCell>
               ))}
             </TableRow>
@@ -219,7 +254,7 @@ export default function Home() {
                   }}
                 >
                   {Object.values(advocate).map((value, i) => (
-                    <TableCell key={i}>
+                    <TableCell key={i} sx={{ whiteSpace: "nowrap" }}>
                       {i === 4 ? (
                         <Specialties specialties={value as string[]} />
                       ) : (
